@@ -15,13 +15,22 @@ const defaultLayers = {
   default: 0,
 }
 
+/**
+ * 解析合并配置
+ * @param userConfig 用户配置
+ * @param defaults 默认配置
+ * @returns
+ */
 export function resolveConfig(
   userConfig: UserConfig = {},
   defaults: UserConfigDefaults = {},
 ): ResolvedConfig {
+  // 合并配置
   const config = Object.assign({}, defaults, userConfig) as UserConfigDefaults
+  // 预设扁平化
   const rawPresets = (config.presets || []).flatMap(toArray)
 
+  // 将预设进行排序
   const sortedPresets = [
     ...rawPresets.filter(p => p.enforce === 'pre'),
     ...rawPresets.filter(p => !p.enforce),
@@ -30,16 +39,18 @@ export function resolveConfig(
 
   const layers = Object.assign(defaultLayers, ...rawPresets.map(i => i.layers), userConfig.layers)
 
+  // 对所有预设的某个key进行合并
   function mergePresets<T extends 'rules' | 'variants' | 'extractors' | 'shortcuts' | 'preflights' | 'preprocess' | 'postprocess' | 'extendTheme' | 'autocomplete'>(key: T): Required<UserConfig>[T] {
-    return uniq([
+    return uniq/* 去重 */([
       ...sortedPresets.flatMap(p => toArray(p[key] || []) as any[]),
       ...toArray(config[key] || []) as any[],
     ])
   }
 
+  // 代码提取器
   const extractors = mergePresets('extractors')
   if (!extractors.length)
-    extractors.push(extractorSplit)
+    extractors.push(extractorSplit) // 默认提取器
   extractors.sort((a, b) => (a.order || 0) - (b.order || 0))
 
   const rules = mergePresets('rules')
@@ -84,6 +95,6 @@ export function resolveConfig(
     autocomplete: mergePresets('autocomplete'),
     variants: mergePresets('variants').map(normalizeVariant),
     shortcuts: resolveShortcuts(mergePresets('shortcuts')),
-    extractors,
+    extractors, // 代码提取器
   }
 }

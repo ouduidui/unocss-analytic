@@ -14,6 +14,7 @@ export class UnoGenerator {
     public userConfig: UserConfig = {},
     public defaults: UserConfigDefaults = {},
   ) {
+    // 解析合并参数
     this.config = resolveConfig(userConfig, defaults)
   }
 
@@ -29,6 +30,12 @@ export class UnoGenerator {
     this._cache.clear()
   }
 
+  /**
+   * 使用代码提取器，对代码进行切分提取
+   * @param code
+   * @param id
+   * @param set
+   */
   async applyExtractors(code: string, id?: string, set = new Set<string>()) {
     const context: ExtractorContext = {
       get original() { return code },
@@ -57,6 +64,11 @@ export class UnoGenerator {
     return context
   }
 
+  /**
+   * 解析token
+   * @param raw
+   * @param alias
+   */
   async parseToken(raw: string, alias?: string) {
     if (this.blocked.has(raw))
       return
@@ -112,6 +124,12 @@ export class UnoGenerator {
     this._cache.set(cacheKey, null)
   }
 
+  /**
+   * 生成器
+   * @param input 代码
+   * @param generateOptions
+   * @returns
+   */
   async generate(
     input: string | Set<string>,
     {
@@ -122,6 +140,7 @@ export class UnoGenerator {
       minify = false,
     }: GenerateOptions = {},
   ): Promise<GenerateResult> {
+    // 获取代码中的token集合
     const tokens = typeof input === 'string'
       ? await this.applyExtractors(input, id)
       : input
@@ -139,6 +158,7 @@ export class UnoGenerator {
       if (matched.has(raw))
         return
 
+      // 解析token
       const payload = await this.parseToken(raw)
       if (payload == null)
         return
@@ -502,6 +522,12 @@ export class UnoGenerator {
   }
 }
 
+/**
+ * 创建生成器「核心函数」
+ * @param config 用户配置
+ * @param defaults 默认配置
+ * @returns
+ */
 export function createGenerator(config?: UserConfig, defaults?: UserConfigDefaults) {
   return new UnoGenerator(config, defaults)
 }
